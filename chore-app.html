@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chore Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #FF6B6B 0%, #FFD93D 100%); padding: 20px; }
+        .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 16px; padding: 20px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Poppins', sans-serif; background: #ddd; color: #333; }
+        .tab-btn.active { background: #FF6B6B; color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; font-size: 24px; }
+        h3 { color: #666; margin: 15px 0 10px 0; }
+        input, select { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; font-family: 'Poppins', sans-serif; }
+        button { width: 100%; padding: 10px; background: #FF6B6B; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: 'Poppins', sans-serif; margin-top: 10px; }
+        button:hover { background: #e74c3c; }
+        .item { padding: 12px; margin: 8px 0; background: #f8f9fa; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .del-btn { padding: 5px 10px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        .chore { padding: 12px; margin: 8px 0; background: #f8f9fa; border-radius: 8px; display: flex; align-items: center; gap: 10px; }
+        input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; flex-shrink: 0; }
+        .chore-info { flex: 1; }
+        .chore-name { font-weight: 600; }
+        .chore-name.done { text-decoration: line-through; color: #999; }
+        .chore-amount { color: #FF6B6B; font-weight: 600; }
+        .deduction { padding: 10px; margin: 5px 0; background: #ffe6e6; border-left: 4px solid #FF6B6B; border-radius: 4px; }
+        .total-box { text-align: center; padding: 20px; background: #f8f9fa; border-radius: 8px; margin: 20px 0; }
+        .total-amount { font-size: 32px; font-weight: 700; color: #FF6B6B; }
+        .empty { text-align: center; color: #999; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('parent')">Parent</button>
+            <button class="tab-btn" onclick="switchTab('nicola')">Nicola</button>
+            <button class="tab-btn" onclick="switchTab('camille')">Camille</button>
+        </div>
+
+        <!-- PARENT TAB -->
+        <div id="parent" class="tab-content active">
+            <h1>💰 Parent Dashboard</h1>
+            
+            <h3>Add Chores (both teens)</h3>
+            <input type="text" id="choreName" placeholder="Chore name">
+            <input type="number" id="choreAmount" placeholder="Amount ($)" step="0.5">
+            <button onclick="addChore()">Add Chore</button>
+            <div id="choresList"></div>
+
+            <h3>Add Deduction</h3>
+            <select id="teen">
+                <option value="">Select teen</option>
+                <option value="nicola">Nicola</option>
+                <option value="camille">Camille</option>
+            </select>
+            <input type="number" id="deductAmount" placeholder="Amount ($)" step="0.5">
+            <input type="text" id="deductReason" placeholder="Reason">
+            <button onclick="addDeduction()">Add Deduction</button>
+            <div id="deductionsList"></div>
+
+            <h3>Totals</h3>
+            <div id="totals"></div>
+        </div>
+
+        <!-- NICOLA TAB -->
+        <div id="nicola" class="tab-content">
+            <h1>Nicola's Chores</h1>
+            <div id="nicolaChores"></div>
+            <div id="nicolaDeductions"></div>
+            <div class="total-box">
+                <div class="total-amount" id="nicolaTotal">$0.00</div>
+            </div>
+        </div>
+
+        <!-- CAMILLE TAB -->
+        <div id="camille" class="tab-content">
+            <h1>Camille's Chores</h1>
+            <div id="camilleChores"></div>
+            <div id="camilleDeductions"></div>
+            <div class="total-box">
+                <div class="total-amount" id="camilleTotal">$0.00</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var data = {
+            chores: [],
+            deductions: [],
+            nicolaCompleted: {},
+            camilleCompleted: {}
+        };
+
+        function load() {
+            var saved = localStorage.getItem('choreApp');
+            if (saved) data = JSON.parse(saved);
+            show();
+        }
+
+        function save() {
+            localStorage.setItem('choreApp', JSON.stringify(data));
+            show();
+        }
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById(tab).classList.add('active');
+            document.querySelector(`button[onclick="switchTab('${tab}')"]`).classList.add('active');
+        }
+
+        function addChore() {
+            var name = document.getElementById('choreName').value;
+            var amount = parseFloat(document.getElementById('choreAmount').value);
+            if (name && amount) {
+                data.chores.push({name, amount});
+                document.getElementById('choreName').value = '';
+                document.getElementById('choreAmount').value = '';
+                save();
+            }
+        }
+
+        function deleteChore(i) {
+            data.chores.splice(i, 1);
+            save();
+        }
+
+        function addDeduction() {
+            var teen = document.getElementById('teen').value;
+            var amount = parseFloat(document.getElementById('deductAmount').value);
+            var reason = document.getElementById('deductReason').value;
+            if (teen && amount && reason) {
+                data.deductions.push({teen, amount, reason});
+                document.getElementById('teen').value = '';
+                document.getElementById('deductAmount').value = '';
+                document.getElementById('deductReason').value = '';
+                save();
+            }
+        }
+
+        function deleteDeduction(i) {
+            data.deductions.splice(i, 1);
+            save();
+        }
+
+        function toggleChore(teen, i) {
+            var key = 'chore-' + i;
+            var obj = teen === 'nicola' ? data.nicolaCompleted : data.camilleCompleted;
+            if (obj[key]) {
+                delete obj[key];
+            } else {
+                obj[key] = true;
+            }
+            save();
+        }
+
+        function show() {
+            // Parent view
+            var h = '';
+            if (data.chores.length === 0) {
+                h = '<div class="empty">No chores yet</div>';
+            } else {
+                for (var i = 0; i < data.chores.length; i++) {
+                    h += '<div class="item"><span>' + data.chores[i].name + ' - $' + data.chores[i].amount.toFixed(2) + '</span><button class="del-btn" onclick="deleteChore(' + i + ')">Delete</button></div>';
+                }
+            }
+            document.getElementById('choresList').innerHTML = h;
+
+            h = '';
+            if (data.deductions.length === 0) {
+                h = '<div class="empty">No deductions</div>';
+            } else {
+                for (var i = 0; i < data.deductions.length; i++) {
+                    h += '<div class="item"><span>' + data.deductions[i].teen + ' - ' + data.deductions[i].reason + ' (-$' + data.deductions[i].amount.toFixed(2) + ')</span><button class="del-btn" onclick="deleteDeduction(' + i + ')">Remove</button></div>';
+                }
+            }
+            document.getElementById('deductionsList').innerHTML = h;
+
+            var n = 0, c = 0;
+            for (var i = 0; i < data.deductions.length; i++) {
+                if (data.deductions[i].teen === 'nicola') n -= data.deductions[i].amount;
+                if (data.deductions[i].teen === 'camille') c -= data.deductions[i].amount;
+            }
+            h = '<div class="item"><span><strong>Nicola</strong></span><span>$' + n.toFixed(2) + '</span></div>';
+            h += '<div class="item"><span><strong>Camille</strong></span><span>$' + c.toFixed(2) + '</span></div>';
+            document.getElementById('totals').innerHTML = h;
+
+            // Nicola view
+            h = '';
+            var earned = 0;
+            if (data.chores.length === 0) {
+                h = '<div class="empty">No chores assigned</div>';
+            } else {
+                for (var i = 0; i < data.chores.length; i++) {
+                    var checked = data.nicolaCompleted['chore-' + i] ? true : false;
+                    h += '<div class="chore"><input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="toggleChore(\'nicola\', ' + i + ')"><div class="chore-info"><div class="chore-name ' + (checked ? 'done' : '') + '">' + data.chores[i].name + '</div></div><div class="chore-amount">$' + data.chores[i].amount.toFixed(2) + '</div></div>';
+                    if (checked) earned += data.chores[i].amount;
+                }
+            }
+            document.getElementById('nicolaChores').innerHTML = h;
+
+            h = '';
+            var deduct = 0;
+            for (var i = 0; i < data.deductions.length; i++) {
+                if (data.deductions[i].teen === 'nicola') {
+                    h += '<div class="deduction"><strong>' + data.deductions[i].reason + '</strong> -$' + data.deductions[i].amount.toFixed(2) + '</div>';
+                    deduct += data.deductions[i].amount;
+                }
+            }
+            document.getElementById('nicolaDeductions').innerHTML = h;
+            document.getElementById('nicolaTotal').innerHTML = '$' + (earned - deduct).toFixed(2);
+
+            // Camille view
+            h = '';
+            earned = 0;
+            if (data.chores.length === 0) {
+                h = '<div class="empty">No chores assigned</div>';
+            } else {
+                for (var i = 0; i < data.chores.length; i++) {
+                    var checked = data.camilleCompleted['chore-' + i] ? true : false;
+                    h += '<div class="chore"><input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="toggleChore(\'camille\', ' + i + ')"><div class="chore-info"><div class="chore-name ' + (checked ? 'done' : '') + '">' + data.chores[i].name + '</div></div><div class="chore-amount">$' + data.chores[i].amount.toFixed(2) + '</div></div>';
+                    if (checked) earned += data.chores[i].amount;
+                }
+            }
+            document.getElementById('camilleChores').innerHTML = h;
+
+            h = '';
+            deduct = 0;
+            for (var i = 0; i < data.deductions.length; i++) {
+                if (data.deductions[i].teen === 'camille') {
+                    h += '<div class="deduction"><strong>' + data.deductions[i].reason + '</strong> -$' + data.deductions[i].amount.toFixed(2) + '</div>';
+                    deduct += data.deductions[i].amount;
+                }
+            }
+            document.getElementById('camilleDeductions').innerHTML = h;
+            document.getElementById('camilleTotal').innerHTML = '$' + (earned - deduct).toFixed(2);
+        }
+
+        load();
+    </script>
+</body>
+</html>
