@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camille's Chores</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg, #FF6B6B 0%, #FFD93D 100%); padding: 20px; margin: 0; }
+        .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 16px; padding: 30px; }
+        h1 { text-align: center; color: #333; }
+        .card { background: #f8f9fa; padding: 20px; border-radius: 12px; margin: 20px 0; }
+        .chore { padding: 15px; margin: 10px 0; background: white; border-radius: 8px; display: flex; align-items: center; }
+        input[type="checkbox"] { width: 24px; height: 24px; margin-right: 15px; cursor: pointer; }
+        .chore-name { flex: 1; }
+        .chore-name.done { text-decoration: line-through; color: #999; }
+        .amount { color: #FF6B6B; font-weight: 600; }
+        .deduction { padding: 10px; margin: 5px 0; background: #ffe6e6; border-left: 4px solid #FF6B6B; border-radius: 4px; }
+        .total { text-align: center; font-size: 28px; font-weight: 700; color: #FF6B6B; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Camille's Chores</h1>
+
+        <div class="card" id="choresCard">
+            <h3>Today's Chores</h3>
+            <div id="choresList"></div>
+        </div>
+
+        <div class="card" id="deductionsCard" style="display:none;">
+            <h3>Deductions</h3>
+            <div id="deductionsList"></div>
+        </div>
+
+        <div class="card">
+            <div class="total" id="totalEarnings">$0.00</div>
+        </div>
+    </div>
+
+    <script>
+        var chores = [];
+        var deductions = [];
+        var completed = {};
+
+        function load() {
+            var c = localStorage.getItem('chores');
+            if (c) chores = JSON.parse(c);
+            var d = localStorage.getItem('deductions');
+            if (d) deductions = JSON.parse(d);
+            var comp = localStorage.getItem('camille-completed');
+            if (comp) completed = JSON.parse(comp);
+            show();
+        }
+
+        function saveCompleted() {
+            localStorage.setItem('camille-completed', JSON.stringify(completed));
+        }
+
+        function toggleChore(i) {
+            var key = 'chore-' + i;
+            if (completed[key]) {
+                delete completed[key];
+            } else {
+                completed[key] = true;
+            }
+            saveCompleted();
+            show();
+        }
+
+        function show() {
+            var h = '';
+            var earned = 0;
+            for (var i = 0; i < chores.length; i++) {
+                var key = 'chore-' + i;
+                var isChecked = completed[key] ? true : false;
+                h += '<div class="chore">';
+                h += '<input type="checkbox" ' + (isChecked ? 'checked' : '') + ' onchange="toggleChore(' + i + ')">';
+                h += '<div class="chore-name ' + (isChecked ? 'done' : '') + '">' + chores[i].name + '</div>';
+                h += '<div class="amount">$' + chores[i].amount.toFixed(2) + '</div>';
+                h += '</div>';
+                if (isChecked) earned += chores[i].amount;
+            }
+            document.getElementById('choresList').innerHTML = h;
+
+            var h2 = '';
+            var deduct = 0;
+            for (var i = 0; i < deductions.length; i++) {
+                if (deductions[i].teen == 'camille') {
+                    h2 += '<div class="deduction"><strong>' + deductions[i].reason + '</strong> -$' + deductions[i].amount.toFixed(2) + '</div>';
+                    deduct += deductions[i].amount;
+                }
+            }
+            if (h2) {
+                document.getElementById('deductionsList').innerHTML = h2;
+                document.getElementById('deductionsCard').style.display = 'block';
+            } else {
+                document.getElementById('deductionsCard').style.display = 'none';
+            }
+
+            var total = earned - deduct;
+            document.getElementById('totalEarnings').innerHTML = '$' + total.toFixed(2);
+        }
+
+        setInterval(function() {
+            load();
+        }, 1000);
+
+        load();
+    </script>
+</body>
+</html>
